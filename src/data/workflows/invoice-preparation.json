@@ -1,0 +1,188 @@
+{
+  "slug": "invoice-preparation",
+  "title": "Invoice Preparation",
+  "description": "Step-by-step guide for preparing and submitting invoices in Apptricity.",
+  "steps": [
+    {
+      "id": "step-1",
+      "title": "Prerequisites",
+      "type": "checklist",
+      "description": "Gather everything you need before starting the invoice process.",
+      "items": [
+        { "id": "invoices", "label": "Have all invoices ready for processing" },
+        { "id": "digital-copies", "label": "Prepare digital copies (scanned or photographed) of each invoice" },
+        { "id": "dept-codes", "label": "Confirm your department code(s)" },
+        { "id": "account-numbers", "label": "Have account numbers available for distribution" }
+      ]
+    },
+    {
+      "id": "step-2",
+      "title": "Log In",
+      "type": "info",
+      "description": "Access the Apptricity system.",
+      "content": "Navigate to the Apptricity login page provided by your organization. Enter your network credentials (username and password). If you do not have access, contact your department administrator or IT support to request an account.\n\nTip: Bookmark the login page for quick access in the future."
+    },
+    {
+      "id": "step-3",
+      "title": "Dashboard Overview",
+      "type": "info",
+      "description": "Orient yourself with the Apptricity home screen.",
+      "content": "After logging in, you will see the Apptricity home dashboard. Key areas include:\n\n- **Navigation Menu** — Located on the left side, use this to access Invoices, Reports, and Settings.\n- **Recent Activity** — Shows your most recent invoices and their status.\n- **Quick Actions** — Shortcuts to create a new invoice, view pending approvals, or search existing records.\n\nTo begin a new invoice, click \"Create New Invoice\" from Quick Actions or navigate to Invoices → New."
+    },
+    {
+      "id": "step-4",
+      "title": "Create New Invoice",
+      "type": "form",
+      "description": "Enter the core invoice details.",
+      "fields": [
+        {
+          "id": "invoiceType",
+          "label": "Invoice Type",
+          "type": "select",
+          "required": true,
+          "options": ["EID", "Check Request", "Transfer"]
+        },
+        {
+          "id": "vendorName",
+          "label": "Vendor Name",
+          "type": "text",
+          "required": true,
+          "placeholder": "e.g. Acme Corp"
+        },
+        {
+          "id": "invoiceNumber",
+          "label": "Invoice Number",
+          "type": "text",
+          "required": true,
+          "placeholder": "e.g. INV-2024-001"
+        },
+        {
+          "id": "invoiceDate",
+          "label": "Invoice Date",
+          "type": "date",
+          "required": true
+        },
+        {
+          "id": "amount",
+          "label": "Amount ($)",
+          "type": "number",
+          "required": true,
+          "placeholder": "0.00"
+        },
+        {
+          "id": "description",
+          "label": "Description",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "Brief description of the invoice"
+        }
+      ],
+      "output": {
+        "title": "Invoice Summary",
+        "template": "Invoice Type: {{invoiceType}}\nVendor: {{vendorName}}\nInvoice #: {{invoiceNumber}}\nDate: {{invoiceDate}}\nAmount: ${{amount}}\n\nDescription:\n{{description}}"
+      }
+    },
+    {
+      "id": "step-5",
+      "title": "Return Fields",
+      "type": "form",
+      "description": "Complete only if this invoice is a return or correction.",
+      "skippable": true,
+      "fields": [
+        {
+          "id": "returnReason",
+          "label": "Return Reason",
+          "type": "select",
+          "required": false,
+          "options": ["Incorrect Amount", "Wrong Vendor", "Duplicate Invoice", "Missing Documentation", "Other"]
+        },
+        {
+          "id": "originalInvoiceRef",
+          "label": "Original Invoice Reference",
+          "type": "text",
+          "required": false,
+          "placeholder": "e.g. INV-2024-000"
+        },
+        {
+          "id": "correctionNotes",
+          "label": "Correction Notes",
+          "type": "textarea",
+          "required": false,
+          "placeholder": "Describe what needs to be corrected"
+        }
+      ]
+    },
+    {
+      "id": "step-6",
+      "title": "Add Distribution",
+      "type": "form",
+      "description": "Assign the invoice amount to the appropriate department and account.",
+      "fields": [
+        {
+          "id": "department",
+          "label": "Department",
+          "type": "text",
+          "required": true,
+          "placeholder": "e.g. Finance"
+        },
+        {
+          "id": "accountNumber",
+          "label": "Account Number",
+          "type": "text",
+          "required": true,
+          "placeholder": "e.g. 5000-100"
+        },
+        {
+          "id": "distributionAmount",
+          "label": "Amount ($)",
+          "type": "number",
+          "required": true,
+          "placeholder": "0.00"
+        },
+        {
+          "id": "subAccount",
+          "label": "Sub-Account",
+          "type": "text",
+          "required": false,
+          "placeholder": "e.g. 01"
+        }
+      ],
+      "output": {
+        "title": "Distribution Summary",
+        "template": "Department: {{department}}\nAccount #: {{accountNumber}}\nAmount: ${{distributionAmount}}\nSub-Account: {{subAccount}}"
+      }
+    },
+    {
+      "id": "step-7",
+      "title": "Upload eDocs",
+      "type": "checklist",
+      "description": "Attach supporting documentation to your invoice.",
+      "items": [
+        { "id": "scan", "label": "Scan or photograph all supporting documents" },
+        { "id": "rename", "label": "Rename files with a clear naming convention (e.g. VendorName_INV-001.pdf)" },
+        { "id": "upload", "label": "Upload documents using the eDocs attachment feature" },
+        { "id": "verify", "label": "Verify all attachments appear correctly in the invoice record" }
+      ]
+    },
+    {
+      "id": "step-8",
+      "title": "Review & Submit",
+      "type": "checklist",
+      "description": "Final verification before submitting the invoice.",
+      "items": [
+        { "id": "verify-fields", "label": "Verify all invoice fields are correct (vendor, amount, date, type)" },
+        { "id": "verify-distribution", "label": "Confirm distribution total matches the invoice amount" },
+        { "id": "verify-edocs", "label": "Confirm all eDocs are attached and readable" },
+        { "id": "submit", "label": "Click Submit to send the invoice for approval" },
+        { "id": "confirmation", "label": "Note your confirmation number for future reference" }
+      ]
+    },
+    {
+      "id": "step-9",
+      "title": "Post-Submission",
+      "type": "info",
+      "description": "What happens after you submit.",
+      "content": "After submission, your invoice enters the approval workflow. Here's what to expect:\n\n- **Approval Chain** — Your invoice will be routed to the designated approver(s) based on your department and the invoice amount.\n- **Status Tracking** — You can check the status of your invoice at any time from the dashboard under Recent Activity.\n- **Recall** — If you need to make changes after submission, you can recall the invoice from the Invoices list (if it hasn't been approved yet). Select the invoice and click \"Recall.\"\n- **Notifications** — You will receive email notifications when your invoice is approved, returned, or requires action.\n\nIf you have questions about the approval process, contact your department's fiscal coordinator."
+    }
+  ]
+}
