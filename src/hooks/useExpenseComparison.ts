@@ -36,6 +36,7 @@ export function useExpenseComparison(code: string | null) {
       if (cached) {
         try {
           setState(JSON.parse(cached));
+          setLoaded(true);
         } catch { /* ignore parse errors */ }
       }
 
