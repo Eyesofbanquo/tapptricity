@@ -19,6 +19,7 @@ function emptyState(year1 = 2025, year2 = 2026): ExpenseComparisonState {
 export function useExpenseComparison(code: string | null) {
   const [state, setState] = useState<ExpenseComparisonState>(emptyState());
   const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [currentCode, setCurrentCode] = useState<string | null>(code);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -65,15 +66,20 @@ export function useExpenseComparison(code: string | null) {
 
       localStorage.setItem(LS_PREFIX + currentCode, JSON.stringify(next));
 
+      setSaving(true);
       if (saveTimer.current) clearTimeout(saveTimer.current);
-      if (isDevMode) return;
+      if (isDevMode) {
+        queueMicrotask(() => setSaving(false));
+        return;
+      }
 
       saveTimer.current = setTimeout(async () => {
-        if (!supabase) return;
+        if (!supabase) { setSaving(false); return; }
         await supabase
           .from("expense_sheets")
           .update({ data: next, updated_at: new Date().toISOString() })
           .eq("code", currentCode);
+        setSaving(false);
       }, 500);
     },
     [currentCode],
@@ -91,22 +97,27 @@ export function useExpenseComparison(code: string | null) {
     [persist],
   );
 
-  const flushSave = useCallback(() => {
+  const flushSave = useCallback(async () => {
     if (!currentCode) return;
     if (saveTimer.current) {
       clearTimeout(saveTimer.current);
       saveTimer.current = null;
     }
-    if (isDevMode || !supabase) return;
+    if (isDevMode || !supabase) {
+      setSaving(true);
+      queueMicrotask(() => setSaving(false));
+      return;
+    }
 
     const data = JSON.parse(localStorage.getItem(LS_PREFIX + currentCode) || "null");
     if (!data) return;
 
-    supabase
+    setSaving(true);
+    await supabase
       .from("expense_sheets")
       .update({ data, updated_at: new Date().toISOString() })
-      .eq("code", currentCode)
-      .then(() => {});
+      .eq("code", currentCode);
+    setSaving(false);
   }, [currentCode]);
 
   const deleteSheet = useCallback(async () => {
@@ -236,6 +247,7 @@ export function useExpenseComparison(code: string | null) {
   return {
     state,
     loaded,
+    saving,
     currentCode,
     setYears,
     addEntry,
