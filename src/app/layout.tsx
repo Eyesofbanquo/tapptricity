@@ -11,6 +11,14 @@ const spectral = Spectral({
 export const metadata: Metadata = {
   title: "Apptricity Guide",
   description: "Interactive step-by-step guides for Apptricity procedures",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Apptricity Guide",
+  },
+  icons: {
+    apple: "/icons/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({
@@ -22,6 +30,11 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${spectral.variable} font-serif antialiased bg-snow text-gray-900`}>
         {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js")}`,
+          }}
+        />
       </body>
     </html>
   );
