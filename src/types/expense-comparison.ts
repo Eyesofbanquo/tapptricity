@@ -22,4 +22,7 @@ export interface ExpenseComparisonState {
   year2: number;
   region?: string;
   rows: ExpenseRow[];
+  name?: string;
+  createdAt?: string;
+  modifiedAt?: string;
 }

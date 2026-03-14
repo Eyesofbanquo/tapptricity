@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { isDevMode } from "@/lib/env";
 import type { ExpenseComparisonState, ExpenseRow, MonthName, MonthData } from "@/types/expense-comparison";
 
 const LS_PREFIX = "expense-sheet:";
+const LS_CURRENT = "expense-sheet:current";
 
 function generateCode(): string {
   return Math.random().toString(36).substring(2, 8);
@@ -17,6 +19,7 @@ function emptyState(year1 = 2025, year2 = 2026): ExpenseComparisonState {
 export function useExpenseComparison(code: string | null) {
   const [state, setState] = useState<ExpenseComparisonState>(emptyState());
   const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [currentCode, setCurrentCode] = useState<string | null>(code);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -33,11 +36,12 @@ export function useExpenseComparison(code: string | null) {
       if (cached) {
         try {
           setState(JSON.parse(cached));
+          setLoaded(true);
         } catch { /* ignore parse errors */ }
       }
 
-      // Then fetch from Supabase
-      if (supabase) {
+      // Then fetch from Supabase (skip in dev)
+      if (!isDevMode && supabase) {
         const { data } = await supabase
           .from("expense_sheets")
           .select("data")
@@ -63,13 +67,20 @@ export function useExpenseComparison(code: string | null) {
 
       localStorage.setItem(LS_PREFIX + currentCode, JSON.stringify(next));
 
+      setSaving(true);
       if (saveTimer.current) clearTimeout(saveTimer.current);
+      if (isDevMode) {
+        queueMicrotask(() => setSaving(false));
+        return;
+      }
+
       saveTimer.current = setTimeout(async () => {
-        if (!supabase) return;
+        if (!supabase) { setSaving(false); return; }
         await supabase
           .from("expense_sheets")
           .update({ data: next, updated_at: new Date().toISOString() })
           .eq("code", currentCode);
+        setSaving(false);
       }, 500);
     },
     [currentCode],
@@ -79,12 +90,54 @@ export function useExpenseComparison(code: string | null) {
     (fn: (prev: ExpenseComparisonState) => ExpenseComparisonState) => {
       setState((prev) => {
         const next = fn(prev);
-        persist(next);
-        return next;
+        const stamped = { ...next, modifiedAt: new Date().toISOString() };
+        persist(stamped);
+        return stamped;
       });
     },
     [persist],
   );
+
+  const flushSave = useCallback(async () => {
+    if (!currentCode) return;
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    if (isDevMode || !supabase) {
+      setSaving(true);
+      queueMicrotask(() => setSaving(false));
+      return;
+    }
+
+    const data = JSON.parse(localStorage.getItem(LS_PREFIX + currentCode) || "null");
+    if (!data) return;
+
+    setSaving(true);
+    await supabase
+      .from("expense_sheets")
+      .update({ data, updated_at: new Date().toISOString() })
+      .eq("code", currentCode);
+    setSaving(false);
+  }, [currentCode]);
+
+  const deleteSheet = useCallback(async () => {
+    if (!currentCode) return;
+
+    localStorage.removeItem(LS_PREFIX + currentCode);
+
+    const storedCurrent = localStorage.getItem(LS_CURRENT);
+    if (storedCurrent === currentCode) {
+      localStorage.removeItem(LS_CURRENT);
+    }
+
+    if (!isDevMode && supabase) {
+      await supabase
+        .from("expense_sheets")
+        .delete()
+        .eq("code", currentCode);
+    }
+  }, [currentCode]);
 
   const setYears = useCallback(
     (year1: number, year2: number) => {
@@ -165,19 +218,26 @@ export function useExpenseComparison(code: string | null) {
     [update],
   );
 
-  // Create a new sheet in Supabase, returns the code
+  // Create a new sheet, returns the code
   const createSheet = useCallback(
-    async (year1: number, year2: number): Promise<string> => {
+    async (year1: number, year2: number, name?: string): Promise<string> => {
       const newCode = generateCode();
-      const initial = emptyState(year1, year2);
+      const now = new Date().toISOString();
+      const initial: ExpenseComparisonState = {
+        ...emptyState(year1, year2),
+        name,
+        createdAt: now,
+        modifiedAt: now,
+      };
 
-      if (supabase) {
+      if (!isDevMode && supabase) {
         await supabase
           .from("expense_sheets")
           .insert({ code: newCode, data: initial });
       }
 
       localStorage.setItem(LS_PREFIX + newCode, JSON.stringify(initial));
+      localStorage.setItem(LS_CURRENT, newCode);
       setCurrentCode(newCode);
       setState(initial);
       return newCode;
@@ -188,6 +248,7 @@ export function useExpenseComparison(code: string | null) {
   return {
     state,
     loaded,
+    saving,
     currentCode,
     setYears,
     addEntry,
@@ -195,5 +256,7 @@ export function useExpenseComparison(code: string | null) {
     deleteRow,
     setRegion,
     createSheet,
+    flushSave,
+    deleteSheet,
   };
 }

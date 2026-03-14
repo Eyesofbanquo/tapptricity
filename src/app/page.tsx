@@ -40,9 +40,14 @@ export default function Home() {
         <h2 className="text-lg font-semibold text-gray-700 mb-4 mt-10">Tools</h2>
         <div className="space-y-4">
           <ToolCard
-            title="Expense Comparison"
-            description="Compare monthly expenses across two fiscal years with color-coded diffs and xlsx export."
+            title="Create Expense Sheet"
+            description="Create a new expense comparison sheet to track monthly expenses across two fiscal years."
             href="/expense-comparison"
+          />
+          <ToolCard
+            title="View All Expense Sheets"
+            description="Browse and manage your saved expense sheets."
+            href="/expense-sheets"
           />
         </div>
       </main>
