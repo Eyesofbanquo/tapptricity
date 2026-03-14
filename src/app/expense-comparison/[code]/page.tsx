@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useCallback } from "react";
+import { use, useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useExpenseComparison } from "@/hooks/useExpenseComparison";
@@ -9,10 +9,12 @@ import type { EditTarget } from "@/components/expense-comparison/AddEntryModal";
 import { YearSelector } from "@/components/expense-comparison/YearSelector";
 import { ExpenseTable } from "@/components/expense-comparison/ExpenseTable";
 import { AddEntryModal } from "@/components/expense-comparison/AddEntryModal";
-import { DownloadButton } from "@/components/expense-comparison/DownloadButton";
-import { UploadButton } from "@/components/expense-comparison/UploadButton";
+import { DownloadButton, downloadExpenseSheet } from "@/components/expense-comparison/DownloadButton";
+import { UploadButton, parseExpenseFile } from "@/components/expense-comparison/UploadButton";
 import { ShareButton } from "@/components/expense-comparison/ShareButton";
 import { SaveButton } from "@/components/expense-comparison/SaveButton";
+import { ActionMenu } from "@/components/expense-comparison/ActionMenu";
+import { Toast } from "@/components/expense-comparison/Toast";
 import { DeleteSheetDialog } from "@/components/expense-comparison/DeleteSheetDialog";
 
 export default function ExpenseComparisonSheetPage({
@@ -22,11 +24,33 @@ export default function ExpenseComparisonSheetPage({
 }) {
   const { code } = use(params);
   const router = useRouter();
-  const { state, loaded, setYears, addEntry, bulkAddEntries, deleteRow, setRegion, flushSave, deleteSheet } =
+  const { state, loaded, saving, setYears, addEntry, bulkAddEntries, deleteRow, setRegion, flushSave, deleteSheet } =
     useExpenseComparison(code);
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [pendingDeleteRowId, setPendingDeleteRowId] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
+  const prevSaving = useRef(false);
+
+  const mobileFileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (prevSaving.current && !saving) {
+      setShowToast(true);
+      const t = setTimeout(() => setShowToast(false), 2000);
+      return () => clearTimeout(t);
+    }
+    prevSaving.current = saving;
+  }, [saving]);
+
+  const handleShare = useCallback(() => {
+    const url = `${window.location.origin}/expense-comparison/${code}`;
+    navigator.clipboard.writeText(url);
+  }, [code]);
+
+  const handleDownload = useCallback(() => {
+    downloadExpenseSheet(state);
+  }, [state]);
 
   function handleEditCell(rowId: string, month: MonthName) {
     const row = state.rows.find((r) => r.id === rowId);
@@ -79,27 +103,61 @@ export default function ExpenseComparisonSheetPage({
 
   return (
     <div className="min-h-screen bg-snow">
-      <header className="border-b border-silver px-6 py-8">
-        <div className="max-w-[90rem] mx-auto flex items-center justify-between">
+      <header className="border-b border-silver px-4 py-4 md:px-6 md:py-8">
+        <div className="max-w-[90rem] mx-auto flex items-center justify-between gap-4">
           <div>
             <Link href="/expense-sheets" className="text-steel text-sm hover:underline">
               &larr; All Sheets
             </Link>
-            <h1 className="text-3xl font-bold text-crimson mt-1">{headerTitle}</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-crimson mt-1">{headerTitle}</h1>
             <p className="text-gray-600 mt-1">
               {state.year1} vs {state.year2}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <SaveButton onSave={flushSave} />
+
+          {/* Desktop action buttons */}
+          <div className="hidden md:flex items-center gap-3">
+            {state.rows.length > 0 && <SaveButton saving={saving} onSave={flushSave} />}
+            {state.rows.length === 0 && <UploadButton bulkAddEntries={bulkAddEntries} setRegion={setRegion} />}
             <ShareButton code={code} />
-            <UploadButton bulkAddEntries={bulkAddEntries} setRegion={setRegion} />
-            <DownloadButton state={state} />
+            {state.rows.length > 0 && <DownloadButton state={state} />}
+            <button
+              onClick={() => setShowDeleteDialog(true)}
+              className="px-4 py-2 bg-crimson text-white rounded hover:bg-red-700 transition-colors"
+            >
+              Delete
+            </button>
+          </div>
+
+          {/* Mobile hamburger menu */}
+          <div className="md:hidden">
+            <ActionMenu
+              saving={saving}
+              onSave={flushSave}
+              onShare={handleShare}
+              onUploadClick={() => mobileFileInputRef.current?.click()}
+              onDownload={handleDownload}
+              onDelete={() => setShowDeleteDialog(true)}
+              hasRows={state.rows.length > 0}
+            />
           </div>
         </div>
       </header>
 
-      <main className="max-w-[90rem] mx-auto px-6 py-8 space-y-6">
+      {/* Hidden file input for mobile upload action */}
+      <input
+        ref={mobileFileInputRef}
+        type="file"
+        accept=".xlsx,.xls,.csv"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) parseExpenseFile(file, bulkAddEntries, setRegion);
+          e.target.value = "";
+        }}
+      />
+
+      <main className="max-w-[90rem] mx-auto px-4 md:px-6 py-8 space-y-6">
         <YearSelector
           onSetYears={setYears}
           defaultYear1={state.year1}
@@ -128,6 +186,8 @@ export default function ExpenseComparisonSheetPage({
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
       />
+
+      <Toast message="Saved!" visible={showToast} />
     </div>
   );
 }
