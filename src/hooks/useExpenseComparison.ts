@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { isDevMode } from "@/lib/env";
+import { generateId } from "@/lib/id";
 import type { ExpenseComparisonState, ExpenseRow, MonthName, MonthData } from "@/types/expense-comparison";
 
 const LS_PREFIX = "expense-sheet:";
@@ -163,7 +164,7 @@ export function useExpenseComparison(code: string | null) {
           );
         } else {
           const newRow: ExpenseRow = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             expenseName,
             accountCode,
             months: { [month]: monthData },
@@ -188,7 +189,7 @@ export function useExpenseComparison(code: string | null) {
             rows[idx] = { ...rows[idx], months: { ...rows[idx].months, [entry.month]: entry.data } };
           } else {
             rows.push({
-              id: crypto.randomUUID(),
+              id: generateId(),
               expenseName: entry.expenseName,
               accountCode: entry.accountCode,
               months: { [entry.month]: entry.data },
