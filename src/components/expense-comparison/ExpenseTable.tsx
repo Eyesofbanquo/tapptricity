@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { MONTH_NAMES } from "@/types/expense-comparison";
 import type { ExpenseComparisonState, MonthName } from "@/types/expense-comparison";
 
@@ -32,6 +32,13 @@ function monthYearLabel(month: string, year: number): string {
 }
 
 export function ExpenseTable({ state, onDeleteRow, onRegionChange, onEditCell }: ExpenseTableProps) {
+  const [expenseCollapsed, setExpenseCollapsed] = useState(false);
+  const [acctCodeCollapsed, setAcctCodeCollapsed] = useState(false);
+
+  const expenseWidth = expenseCollapsed ? "min-w-[72px] max-w-[72px]" : "min-w-[160px]";
+  const acctCodeWidth = acctCodeCollapsed ? "min-w-[64px] max-w-[64px]" : "min-w-[160px]";
+  const acctCodeLeft = expenseCollapsed ? "left-[72px]" : "left-[160px]";
+
   if (state.rows.length === 0) {
     return (
       <p className="text-gray-500 italic">
@@ -48,7 +55,7 @@ export function ExpenseTable({ state, onDeleteRow, onRegionChange, onEditCell }:
           <tr className="bg-gray-50">
             <th
               colSpan={2}
-              className="sticky left-0 bg-gray-50 z-10 px-3 py-2 text-left border-b border-r border-silver"
+              className={`sticky left-0 bg-gray-50 z-10 px-3 py-2 text-left border-b border-r border-silver ${expenseCollapsed && acctCodeCollapsed ? "max-w-[136px]" : ""}`}
             >
               <label className="flex items-center gap-2">
                 <span className="font-semibold text-gray-700">Region #</span>
@@ -68,11 +75,21 @@ export function ExpenseTable({ state, onDeleteRow, onRegionChange, onEditCell }:
           </tr>
           {/* Single header row: Expense | Acct Code | Jan-25 | Jan-26 | Diff | Feb-25 | ... */}
           <tr className="bg-gray-100">
-            <th className="sticky left-0 bg-gray-100 z-10 px-3 py-2 text-left border-b border-r border-silver min-w-[160px]">
-              Expense
+            <th
+              onClick={() => setExpenseCollapsed((c) => !c)}
+              className={`sticky left-0 bg-gray-100 z-10 px-3 py-2 text-left border-b border-r border-silver cursor-pointer select-none ${expenseWidth}`}
+            >
+              <span className="flex items-center gap-1">
+                {expenseCollapsed ? "»" : "«"} {expenseCollapsed ? "Exp" : "Expense"}
+              </span>
             </th>
-            <th className="sticky left-[160px] bg-gray-100 z-10 px-3 py-2 text-left border-b border-r border-silver min-w-[160px]">
-              Acct Code
+            <th
+              onClick={() => setAcctCodeCollapsed((c) => !c)}
+              className={`sticky ${acctCodeLeft} bg-gray-100 z-10 px-3 py-2 text-left border-b border-r border-silver cursor-pointer select-none ${acctCodeWidth}`}
+            >
+              <span className="flex items-center gap-1">
+                {acctCodeCollapsed ? "»" : "«"} {acctCodeCollapsed ? "Acct" : "Acct Code"}
+              </span>
             </th>
             {MONTH_NAMES.map((month) => (
               <Fragment key={month}>
@@ -93,10 +110,10 @@ export function ExpenseTable({ state, onDeleteRow, onRegionChange, onEditCell }:
         <tbody>
           {state.rows.map((row) => (
             <tr key={row.id} className="hover:bg-sky-light/10">
-              <td className="sticky left-0 bg-snow z-10 px-3 py-2 border-b border-r border-silver font-medium whitespace-nowrap">
-                {row.expenseName}
+              <td className={`sticky left-0 bg-snow z-10 px-3 py-2 border-b border-r border-silver font-medium whitespace-nowrap overflow-hidden text-ellipsis ${expenseWidth}`}>
+                {expenseCollapsed ? `${row.expenseName.slice(0, 4)}…` : row.expenseName}
               </td>
-              <td className="sticky left-[160px] bg-snow z-10 px-3 py-2 border-b border-r border-silver text-gray-600 whitespace-nowrap">
+              <td className={`sticky ${acctCodeLeft} bg-snow z-10 px-3 py-2 border-b border-r border-silver text-gray-600 whitespace-nowrap overflow-hidden text-ellipsis ${acctCodeWidth}`}>
                 {row.accountCode}
               </td>
               {MONTH_NAMES.map((month) => {
